@@ -1,11 +1,13 @@
 import axios from "axios"
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 
 const Login = () =>{
     const [user,setUser] = useState({
         email:"",
         password:""
     })
+    const navigate = useNavigate();
 
     const handleChange = (e) =>{
         setUser({
@@ -20,6 +22,7 @@ const Login = () =>{
             const res = await axios.post("http://localhost:3000/api/v1/auth/login",user);
             const token = res.data.token;
             localStorage.setItem("token",token);
+            navigate("/chat")
         }
         catch(err){
             console.log(err);

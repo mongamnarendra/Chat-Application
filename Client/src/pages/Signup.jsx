@@ -1,11 +1,13 @@
 import { useState } from "react"
 import axios from "axios"
+import { useNavigate } from "react-router-dom"
 const Signup =()=>{
     const [user,setUser] = useState({
         name:"",
         email:"",
         password:""
     })
+    const navigate = useNavigate();
 
     const handleChange = (e) =>{
         setUser({
@@ -21,6 +23,7 @@ const Signup =()=>{
             alert("Email already exists");
         }
         console.log(res);
+        navigate("/login")
     }
 
     return (

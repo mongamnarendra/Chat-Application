@@ -18,6 +18,13 @@ const signUp = async (req, res) => {
                 messsage: "Email already exist"
             })
         }
+        const findUserName = await User.findOne({ name });
+        if (findUserName) {
+            return res.status(409).json({
+                success: false,
+                messsage: "Name already exist"
+            })
+        }
         const hashedPassword = await bcrypt.hash(password, 10)
         const user = await User.create({
             name,
@@ -60,11 +67,11 @@ const login = async (req, res) => {
                 message: "Invalid email or password",
             });
         }
-        
+
         const passwordCheck = await bcrypt.compare(password, user.password);
         if (passwordCheck) {
             //generate jwt token
-            const jwtToken = jwt.sign({userId:user._id,email:user.email}, "SECRET_KEY", {
+            const jwtToken = jwt.sign({ userId: user._id, email: user.email, name: user.name }, "SECRET_KEY", {
                 "expiresIn": "1h"
             })
             return res.status(200).json({
@@ -87,5 +94,34 @@ const login = async (req, res) => {
     }
 }
 
+const getUserByName = async (req, res) => {
+    try {
+        const { name } = req.params;
 
-module.exports = { signUp, login };
+        if (!name) {
+            return res.status(400).json({
+                success: false,
+                message: "Name is required",
+            });
+        }
+
+        // Case-insensitive partial match
+        const users = await User.find({
+            name: { $regex: name, $options: "i" }
+        }).select("_id name email");
+
+        return res.status(200).json({
+            success: true,
+            users,
+        });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+        });
+    }
+};
+
+
+module.exports = { signUp, login , getUserByName};
