@@ -12,13 +12,14 @@ const MessageSchema = new mongoose.Schema({
         ref: "User",
         required: true
     },
-
+    senderName: {
+      type: String,
+      required: true,
+    },
     message: {
         type: String,
         required: true
     }
 },{timestamps:true})
 
-messageSchema.index({ groupId: 1, createdAt: 1 });
-
-module.exports = mongoose.model("Message")
+module.exports = mongoose.model("Message",MessageSchema)

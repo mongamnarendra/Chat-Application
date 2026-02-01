@@ -41,22 +41,67 @@ const createGroup = async (req, res) => {
 };
 
 
-const listOfGroupByUser = async(req,res)=>{
+const listOfGroupByUser = async (req, res) => {
   try {
-    const {userId} = req.body;
+    const { userId } = req.body;
     const groupList = await GroupMember.find({ userId })
       .populate("groupId", "groupName createdBy")
       .sort({ createdAt: -1 });
     return res.status(200).json({
-      success:true,
+      success: true,
       list: groupList
     })
   }
-  catch(err) {
+  catch (err) {
     console.log(err)
   }
 }
 
+const addMemberToGroup = async (req, res) => {
+  try {
+    const { groupId, userId } = req.body;
+
+    if (!groupId || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: "groupId and userId are required",
+      });
+    }
+
+    // check already member
+    const existingMember = await GroupMember.findOne({
+      groupId,
+      userId,
+    });
+
+    if (existingMember) {
+      return res.status(409).json({
+        success: false,
+        message: "User already in group",
+      });
+    }
+
+    // add member
+    const member = await GroupMember.create({
+      groupId,
+      userId,
+      role: "member",
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "User added to group",
+      data: member,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
 
 
-module.exports = { createGroup, listOfGroupByUser };
+
+module.exports = { createGroup, listOfGroupByUser, addMemberToGroup };

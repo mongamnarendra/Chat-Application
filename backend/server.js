@@ -5,6 +5,7 @@ const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 const router = require("./Router/userRouter");
 const { Server } = require("socket.io");
+const Message = require("./Model/Message");
 
 dotenv.config();
 connectDB();
@@ -48,16 +49,52 @@ io.on("connection", (socket) => {
     console.log(`Socket ${socket.id} left group ${groupId}`);
   });
 
-  // send message to group
-  socket.on("send-message", ({ groupId, message, sender }) => {
-    console.log("Message received:", message);
+  // // send message to group
+  // socket.on("send-message", async ({ groupId, message, senderId, senderName }) => {
+  //   try {
+  //     const savedMessage = await Message.create({
+  //       groupId,
+  //       senderId,
+  //       message,
+  //     });
 
-    io.to(groupId).emit("receive-message", {
-      groupId,
-      message,
-      sender,
-      time: new Date()
-    });
+  //     io.to(groupId).emit("receive-message", {
+  //       _id: savedMessage._id,
+  //       groupId: savedMessage.groupId,
+  //       senderId: savedMessage.senderId,
+  //       message: savedMessage.message,
+  //       createdAt: savedMessage.createdAt,
+  //     });
+  //   } catch (err) {
+  //     console.log("Error", err)
+  //   }
+
+  // });
+
+  socket.on("send-message", async ({ groupId, message, senderId, senderName }) => {
+    try {
+      console.log("📩 Incoming message:", message);
+
+      const savedMessage = await Message.create({
+        groupId,
+        senderId,
+        senderName,
+        message,
+      });
+
+      console.log("✅ Message saved:", savedMessage._id);
+
+      io.to(groupId).emit("receive-message", {
+        _id: savedMessage._id,
+        groupId: savedMessage.groupId,
+        senderId: savedMessage.senderId,
+        senderName: savedMessage.senderName,
+        message: savedMessage.message,
+        createdAt: savedMessage.createdAt,
+      });
+    } catch (err) {
+      console.error("❌ Message save failed:", err);
+    }
   });
 
   socket.on("disconnect", () => {
