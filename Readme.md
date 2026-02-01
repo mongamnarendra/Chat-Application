@@ -105,15 +105,8 @@
 - **Outcome of Today's Work**
   - Fully functional real-time group chat
   - Persistent message history
-  - WhatsApp-like UI & UX
   - Scalable component structure
   - Clean socket lifecycle management
-
-### Notes
-- Backend is fully functional for auth, groups, and real-time messaging.
-- Frontend has UI for chat but messaging logic (via sockets) is not yet connected.
-- No message persistence or member addition logic implemented yet.
-- Errors in terminal suggest potential issues (e.g., missing env vars, incomplete message controller).
 
 
 
