@@ -17,7 +17,7 @@
 - **Database Connection**: MongoDB setup with Mongoose.
 - **Dependencies**: Installed Express, Mongoose, Socket.IO, bcrypt, JWT, CORS, dotenv, etc.
 
-### Today (January 31, 2026): Frontend Development
+### Day-2 (January 31, 2026): Frontend Development
 - **Project Setup**: Initialized React app with Vite, configured for routing and development.
 - **Authentication Pages**:
   - `Login`: Form to authenticate users, store JWT token, redirect to chat.
@@ -31,10 +31,151 @@
 - **Styling**: CSS files for chat and user search components.
 - **Dependencies**: Installed React, React Router, Axios, JWT-decode, Socket.IO-client, Vite plugins, ESLint.
 
+### Day-3 (February 1, 2026): Group Chat & Members Implementation
+
+🗓️ Today’s Work – Group Chat & Members (Detailed)
+
+This section documents the group chat functionality implemented today, step by step.
+
+👥 Group Chat Implementation
+1️⃣ Group Listing & Selection
+
+Displayed all groups of the logged-in user in a sidebar
+
+Active group is highlighted when selected
+
+Switching groups dynamically updates the chat space
+
+Previous group messages are cleared when switching
+
+2️⃣ Group Chat Space (Dedicated Component)
+
+Chat UI moved into a separate component (ChatSpace.jsx)
+
+Clear separation between:
+
+Group list & layout (Chat.jsx)
+
+Message handling & sockets (ChatSpace.jsx)
+
+Improves maintainability and prevents socket duplication issues
+
+💬 Real-Time Group Messaging
+3️⃣ Socket.IO Room-Based Messaging
+
+Each group uses its own Socket.IO room (groupId)
+
+When a user selects a group:
+
+Socket joins that group room
+
+When the user switches groups:
+
+Socket leaves the previous room
+
+Messages are broadcast only to members of that group
+
+4️⃣ Message Persistence (Database)
+
+Every message is stored in MongoDB before being emitted
+
+Stored fields:
+
+groupId
+
+senderId
+
+senderName
+
+message
+
+createdAt
+
+On group selection:
+
+Previous messages are fetched from DB via REST API
+
+Chat history is restored instantly
+
+🫧 Chat UI (WhatsApp-Style)
+5️⃣ Message Presentation
+
+Messages displayed as rounded chat bubbles
+
+Layout rules:
+
+Sender’s messages → right side
+
+Other users’ messages → left side
+
+Sender name shown above each message
+
+Message timestamp shown below each message
+
+Clean dark-themed chat layout
+
+⬇️ Auto Scroll Behavior
+6️⃣ Smooth Auto Scroll
+
+Chat automatically scrolls to the latest message
+
+Implemented using useRef
+
+No extra blank space or UI jump issues
+
+Works consistently on:
+
+New incoming messages
+
+Switching groups
+
+➕ Add Members to Group
+7️⃣ User Search & Add Member Flow
+
+Added “Add Members” button in chat header
+
+Clicking opens a modal with user search
+
+Admin selects a user from search results
+
+REST API call adds the selected user to the group
+
+Clean modal-based UX
+
+⚙️ Socket & State Handling Improvements
+8️⃣ Stability & Cleanup
+
+Proper socket listener cleanup on:
+
+Group change
+
+Component unmount
+
+Prevented:
+
+Duplicate socket events
+
+Message leakage between groups
+
+Ensured messages render only for the active group
+
+✅ Outcome of Today’s Work
+
+Fully functional real-time group chat
+
+Persistent message history
+
+WhatsApp-like UI & UX
+
+Scalable component structure
+
+Clean socket lifecycle management
+
 ### Notes
 - Backend is fully functional for auth, groups, and real-time messaging.
 - Frontend has UI for chat but messaging logic (via sockets) is not yet connected.
 - No message persistence or member addition logic implemented yet.
 - Errors in terminal suggest potential issues (e.g., missing env vars, incomplete message controller).
+
 
 
