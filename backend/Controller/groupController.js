@@ -1,5 +1,6 @@
 const Group = require("../Model/Group");
 const GroupMember = require("../Model/GroupMember");
+const Message = require("../Model/Message");
 
 const createGroup = async (req, res) => {
   try {
@@ -44,18 +45,32 @@ const createGroup = async (req, res) => {
 const listOfGroupByUser = async (req, res) => {
   try {
     const { userId } = req.body;
-    const groupList = await GroupMember.find({ userId })
-      .populate("groupId", "groupName createdBy")
-      .sort({ createdAt: -1 });
-    return res.status(200).json({
-      success: true,
-      list: groupList
-    })
+
+    const groups = await GroupMember
+      .find({ userId })
+      .populate("groupId");
+
+    // attach last message for each group
+    const result = await Promise.all(
+      groups.map(async (g) => {
+        const lastMessage = await Message.findOne({
+          groupId: g.groupId._id,
+        })
+          .sort({ createdAt: -1 })
+          .select("message createdAt senderName");
+
+        return {
+          ...g.toObject(),
+          lastMessage,
+        };
+      })
+    );
+
+    res.json({ list: result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-  catch (err) {
-    console.log(err)
-  }
-}
+};
 
 const addMemberToGroup = async (req, res) => {
   try {
@@ -102,6 +117,106 @@ const addMemberToGroup = async (req, res) => {
   }
 };
 
+const listOfGroupMembers = async (req, res) => {
+  try {
+    const { groupId } = req.body;
+    if (!groupId) {
+      return res.status(500).json({
+        success: false,
+        message: "Group Id is missing"
+      })
+    }
+
+    const listOfMembers = await GroupMember.find({ groupId }).populate("userId", "name email");
+    if (listOfMembers) {
+      return res.status(200).json({
+        success: true,
+        message: "members fetched",
+        data: listOfMembers
+      })
+    }
+  }
+  catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal Error"
+    })
+  }
+}
+
+const makeAdmin = async (req, res) => {
+  try {
+    const { groupId, userId } = req.body;
+
+    const member = await GroupMember.findOne({ groupId, userId });
+
+    if (!member) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found in group",
+      });
+    }
+
+    if (member.role === "admin") {
+      return res.status(400).json({
+        success: false,
+        message: "User is already an admin",
+      });
+    }
+
+    member.role = "admin";
+    await member.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "User promoted to admin",
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to make admin",
+    });
+  }
+};
+
+const removeMember = async (req, res) => {
+  try {
+    const { groupId, userId } = req.body;
+    const loggedInUserId = req.user.userId;
+
+    if (userId === loggedInUserId) {
+      return res.status(400).json({
+        success: false,
+        message: "Admin cannot remove himself",
+      });
+    }
+
+    const removed = await GroupMember.findOneAndDelete({
+      groupId,
+      userId,
+    });
+
+    if (!removed) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found in group",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "User removed from group",
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to remove member",
+    });
+  }
+};
 
 
-module.exports = { createGroup, listOfGroupByUser, addMemberToGroup };
+
+
+
+module.exports = { createGroup, listOfGroupByUser, addMemberToGroup, listOfGroupMembers, makeAdmin, removeMember };

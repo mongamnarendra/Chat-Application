@@ -73,29 +73,74 @@ io.on("connection", (socket) => {
 
   socket.on("send-message", async ({ groupId, message, senderId, senderName }) => {
     try {
-      console.log("📩 Incoming message:", message);
-
       const savedMessage = await Message.create({
         groupId,
         senderId,
         senderName,
         message,
+        status: "sent",
       });
 
-      console.log("✅ Message saved:", savedMessage._id);
+      // emit message
+      io.to(groupId).emit("receive-message", savedMessage);
 
-      io.to(groupId).emit("receive-message", {
-        _id: savedMessage._id,
-        groupId: savedMessage.groupId,
-        senderId: savedMessage.senderId,
-        senderName: savedMessage.senderName,
-        message: savedMessage.message,
-        createdAt: savedMessage.createdAt,
+      // mark delivered immediately (users in room)
+      await Message.findByIdAndUpdate(savedMessage._id, {
+        status: "delivered",
       });
+
+      io.to(groupId).emit("message-delivered", {
+        messageId: savedMessage._id,
+      });
+
     } catch (err) {
       console.error("❌ Message save failed:", err);
     }
   });
+
+
+  socket.on("typing", async ({ groupId, userName }) => {
+    socket.broadcast.to(groupId).emit("typing-feedback", {
+      userName
+    })
+  })
+
+  socket.on("mark-seen", async ({ groupId, userId }) => {
+    try {
+      // find messages that are eligible to be marked as seen
+      const unseenMessages = await Message.find({
+        groupId,
+        senderId: { $ne: userId },   // receiver only
+        seenBy: { $ne: userId }      // not already seen
+      });
+
+      // nothing to update → do nothing
+      if (unseenMessages.length === 0) return;
+
+      await Message.updateMany(
+        {
+          groupId,
+          senderId: { $ne: userId },
+          seenBy: { $ne: userId }
+        },
+        {
+          $addToSet: { seenBy: userId },
+          status: "seen"
+        }
+      );
+
+      io.to(groupId).emit("messages-seen", {
+        seenBy: userId
+      });
+    } catch (err) {
+      console.error("❌ Seen update failed:", err);
+    }
+  });
+
+
+
+
+
 
   socket.on("disconnect", () => {
     console.log("🔴 Socket disconnected:", socket.id);

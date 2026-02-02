@@ -4,6 +4,7 @@ import axios from "axios";
 import UserSearch from "../components/UserSearch";
 import "../style/Chat.css";
 import ChatSpace from "../components/ChatSpace";
+import socket from "../socket"
 
 const Chat = () => {
   const [user, setUser] = useState(null);
@@ -36,14 +37,31 @@ const Chat = () => {
     fetchGroups();
   }, []);
 
+  useEffect(() => {
+  socket.on("receive-message", (msg) => {
+    setGroups((prev) =>
+      prev.map((g) =>
+        g.groupId._id === msg.groupId
+          ? { ...g, lastMessage: msg }
+          : g
+      )
+    );
+  });
+
+  return () => socket.off("receive-message");
+}, []);
+
+
   // ================= CREATE GROUP =================
   const createGroup = async () => {
     if (!groupName.trim()) return;
 
-    await axios.post("http://localhost:3000/api/v1/group/create", {
-      groupName,
+    const response = await axios.post("http://localhost:3000/api/v1/chat/createGroup", {
+      name: groupName,
       userId: user.userId,
     });
+
+
 
     setShowCreateModal(false);
     setGroupName("");
@@ -57,13 +75,35 @@ const Chat = () => {
 
   // ================= ADD MEMBER =================
   const handleUserSelect = async (selectedUser) => {
-    setShowAddMemberModal(false);
+    try {
+      setShowAddMemberModal(false);
 
-    await axios.post("http://localhost:3000/api/v1/group/add-member", {
-      groupId: activeGroup,
-      userId: selectedUser._id,
-    });
+      const token = localStorage.getItem("token");
+
+      await axios.post(
+        "http://localhost:3000/api/v1/group/add-member",
+        {
+          groupId: activeGroup,
+          userId: selectedUser._id,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      // refresh members list
+      if (window.refreshGroupMembers) {
+        window.refreshGroupMembers();
+      }
+    } catch (err) {
+      console.error("Add member failed:", err);
+    }
   };
+
+
+
 
   if (!user) return <div className="loader">Loading...</div>;
 
@@ -89,23 +129,43 @@ const Chat = () => {
         <div className="groups">
           {groups.map((g) => {
             const gid = g.groupId._id.toString();
+            const lastMsg = g.lastMessage;
 
             return (
               <div
                 key={gid}
-                className={`group ${
-                  activeGroup === gid ? "active" : ""
-                }`}
+                className={`group ${activeGroup === gid ? "active" : ""}`}
                 onClick={() => setActiveGroup(gid)}
               >
                 <div className="group-avatar">
                   {g.groupId.groupName[0]}
                 </div>
-                <span>{g.groupId.groupName}</span>
+
+                <div className="group-info">
+                  <div className="group-top">
+                    <span className="group-name">
+                      {g.groupId.groupName}
+                    </span>
+
+                    {lastMsg && (
+                      <span className="group-time">
+                        {new Date(lastMsg.createdAt).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="group-last-message">
+                    {lastMsg ? lastMsg.message : "No messages yet"}
+                  </div>
+                </div>
               </div>
             );
           })}
         </div>
+
       </aside>
 
       {/* CHAT AREA */}

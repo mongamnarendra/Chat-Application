@@ -72,7 +72,7 @@ const login = async (req, res) => {
         if (passwordCheck) {
             //generate jwt token
             const jwtToken = jwt.sign({ userId: user._id, email: user.email, name: user.name }, "SECRET_KEY", {
-                "expiresIn": "1h"
+                "expiresIn": "1d"
             })
             return res.status(200).json({
                 success: true,

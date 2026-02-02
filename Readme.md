@@ -67,22 +67,6 @@
       - Previous messages are fetched from DB via REST API
       - Chat history is restored instantly
 
-- **Chat UI (WhatsApp-Style)**
-  - **Message Presentation**
-    - Messages displayed as rounded chat bubbles
-    - Layout rules:
-      - Sender's messages → right side
-      - Other users' messages → left side
-    - Sender name shown above each message
-    - Message timestamp shown below each message
-    - Clean dark-themed chat layout
-  - **Auto Scroll Behavior**
-    - Chat automatically scrolls to the latest message
-    - Implemented using useRef
-    - No extra blank space or UI jump issues
-    - Works consistently on:
-      - New incoming messages
-      - Switching groups
 
 - **Add Members to Group**
   - **User Search & Add Member Flow**
