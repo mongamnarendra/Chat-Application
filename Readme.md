@@ -93,4 +93,20 @@
   - Clean socket lifecycle management
 
 
+### Day-4 (February 2, 2026): Advanced Group Management & Chat Enhancements
+
+- **Admin-Only Features for Group Management**
+  - **Add Members**: Admins can add new members to groups through a dedicated interface, ensuring controlled group expansion.
+  - **Make Admin**: Existing members can be promoted to admin status by current admins, distributing administrative responsibilities.
+  - **Remove Member**: Admins have the ability to remove members from groups, maintaining group integrity and access control.
+
+- **Typing Indicator**
+  - Real-time typing indicators show when other group members are composing messages, enhancing the interactive chat experience.
+
+- **Emoji Support with Unicode Storage**
+  - Full emoji support in messages, with emojis stored in the database using their Unicode representations for accurate persistence and display.
+
+- **Latest Messages Preview on Sidebar**
+  - The sidebar now displays previews of the latest messages for each group, allowing users to quickly see recent activity and decide which conversation to engage with.
+
 
