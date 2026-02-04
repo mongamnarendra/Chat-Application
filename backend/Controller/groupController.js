@@ -4,23 +4,21 @@ const Message = require("../Model/Message");
 
 const createGroup = async (req, res) => {
   try {
-    const { name, userId } = req.body;
+    const { name } = req.body;
+    const userId = req.user.userId;
 
-    if (!name || !userId) {
+    if (!name) {
       return res.status(400).json({
         success: false,
-        message: "Group name and userId are required",
+        message: "Group name required",
       });
     }
 
-    // Create group
     const group = await Group.create({
       groupName: name,
       createdBy: userId,
-      isGroup: true,
     });
 
-    // Add creator as admin
     await GroupMember.create({
       groupId: group._id,
       userId,
@@ -29,11 +27,9 @@ const createGroup = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: "Group created successfully",
       groupId: group._id,
     });
-  } catch (err) {
-    console.error(err);
+  } catch {
     return res.status(500).json({
       success: false,
       message: "Internal Server Error",
@@ -103,19 +99,39 @@ const addMemberToGroup = async (req, res) => {
       role: "member",
     });
 
+    // populate user info for message
+    const populatedMember = await member.populate(
+      "userId",
+      "name"
+    );
+
+    // ✅ SYSTEM MESSAGE
+    const systemMessage = await Message.create({
+      groupId,
+      senderId: req.user.userId,
+      senderName: "System",
+      message: `${req.user.name} added ${populatedMember.userId.name} to the group`,
+      type: "system",
+      status: "seen",
+    });
+
+    // ✅ emit via socket
+    req.io.to(groupId).emit("receive-message", systemMessage);
+
     return res.status(201).json({
       success: true,
       message: "User added to group",
-      data: member,
+      data: populatedMember,
     });
   } catch (err) {
-    console.error(err);
+    console.error("❌ addMemberToGroup error:", err);
     return res.status(500).json({
       success: false,
       message: "Internal server error",
     });
   }
 };
+
 
 const listOfGroupMembers = async (req, res) => {
   try {
@@ -148,7 +164,10 @@ const makeAdmin = async (req, res) => {
   try {
     const { groupId, userId } = req.body;
 
-    const member = await GroupMember.findOne({ groupId, userId });
+    const member = await GroupMember.findOne({ groupId, userId }).populate(
+      "userId",
+      "name"
+    );
 
     if (!member) {
       return res.status(404).json({
@@ -164,20 +183,36 @@ const makeAdmin = async (req, res) => {
       });
     }
 
+    // promote to admin
     member.role = "admin";
     await member.save();
+
+    // ✅ SYSTEM MESSAGE
+    const systemMessage = await Message.create({
+      groupId,
+      senderId: req.user.userId,
+      senderName: "System",
+      message: `${req.user.name} made ${member.userId.name} an admin`,
+      type: "system",
+      status: "seen",
+    });
+
+    // emit to group
+    req.io.to(groupId).emit("receive-message", systemMessage);
 
     return res.status(200).json({
       success: true,
       message: "User promoted to admin",
     });
   } catch (err) {
+    console.error("❌ makeAdmin error:", err);
     return res.status(500).json({
       success: false,
       message: "Failed to make admin",
     });
   }
 };
+
 
 const removeMember = async (req, res) => {
   try {
@@ -191,29 +226,44 @@ const removeMember = async (req, res) => {
       });
     }
 
-    const removed = await GroupMember.findOneAndDelete({
+    const removedMember = await GroupMember.findOneAndDelete({
       groupId,
       userId,
-    });
+    }).populate("userId", "name");
 
-    if (!removed) {
+    if (!removedMember) {
       return res.status(404).json({
         success: false,
         message: "User not found in group",
       });
     }
 
+    // ✅ SYSTEM MESSAGE
+    const systemMessage = await Message.create({
+      groupId,
+      senderId: req.user.userId,
+      senderName: "System",
+      message: `${req.user.name} removed ${removedMember.userId.name} from the group`,
+      type: "system",
+      status: "seen",
+    });
+
+    // emit to group
+    req.io.to(groupId).emit("receive-message", systemMessage);
+
     return res.status(200).json({
       success: true,
       message: "User removed from group",
     });
   } catch (err) {
+    console.error("❌ removeMember error:", err);
     return res.status(500).json({
       success: false,
       message: "Failed to remove member",
     });
   }
 };
+
 
 
 

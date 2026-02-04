@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
 import axios from "axios";
-import UserSearch from "../components/UserSearch";
 import "../style/Chat.css";
 import ChatSpace from "../components/ChatSpace";
-import socket from "../socket"
+import socket from "../socket";
 
 const Chat = () => {
   const [user, setUser] = useState(null);
@@ -13,8 +12,6 @@ const Chat = () => {
 
   // modals
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
-
   const [groupName, setGroupName] = useState("");
 
   // ================= FETCH GROUPS =================
@@ -37,31 +34,29 @@ const Chat = () => {
     fetchGroups();
   }, []);
 
+  // ================= REAL-TIME SIDEBAR UPDATE =================
   useEffect(() => {
-  socket.on("receive-message", (msg) => {
-    setGroups((prev) =>
-      prev.map((g) =>
-        g.groupId._id === msg.groupId
-          ? { ...g, lastMessage: msg }
-          : g
-      )
-    );
-  });
+    socket.on("receive-message", (msg) => {
+      setGroups((prev) =>
+        prev.map((g) =>
+          g.groupId._id === msg.groupId
+            ? { ...g, lastMessage: msg }
+            : g
+        )
+      );
+    });
 
-  return () => socket.off("receive-message");
-}, []);
-
+    return () => socket.off("receive-message");
+  }, []);
 
   // ================= CREATE GROUP =================
   const createGroup = async () => {
     if (!groupName.trim()) return;
 
-    const response = await axios.post("http://localhost:3000/api/v1/chat/createGroup", {
+    await axios.post("http://localhost:3000/api/v1/chat/createGroup", {
       name: groupName,
       userId: user.userId,
     });
-
-
 
     setShowCreateModal(false);
     setGroupName("");
@@ -73,43 +68,11 @@ const Chat = () => {
     setGroups(res.data.list);
   };
 
-  // ================= ADD MEMBER =================
-  const handleUserSelect = async (selectedUser) => {
-    try {
-      setShowAddMemberModal(false);
-
-      const token = localStorage.getItem("token");
-
-      await axios.post(
-        "http://localhost:3000/api/v1/group/add-member",
-        {
-          groupId: activeGroup,
-          userId: selectedUser._id,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      // refresh members list
-      if (window.refreshGroupMembers) {
-        window.refreshGroupMembers();
-      }
-    } catch (err) {
-      console.error("Add member failed:", err);
-    }
-  };
-
-
-
-
   if (!user) return <div className="loader">Loading...</div>;
 
   return (
     <div className="app">
-      {/* SIDEBAR */}
+      {/* ================= SIDEBAR ================= */}
       <aside className="sidebar">
         <div className="user-card">
           <div className="avatar">{user.name[0]}</div>
@@ -134,7 +97,9 @@ const Chat = () => {
             return (
               <div
                 key={gid}
-                className={`group ${activeGroup === gid ? "active" : ""}`}
+                className={`group ${
+                  activeGroup === gid ? "active" : ""
+                }`}
                 onClick={() => setActiveGroup(gid)}
               >
                 <div className="group-avatar">
@@ -149,26 +114,30 @@ const Chat = () => {
 
                     {lastMsg && (
                       <span className="group-time">
-                        {new Date(lastMsg.createdAt).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {new Date(lastMsg.createdAt).toLocaleTimeString(
+                          [],
+                          {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          }
+                        )}
                       </span>
                     )}
                   </div>
 
                   <div className="group-last-message">
-                    {lastMsg ? lastMsg.message : "No messages yet"}
+                    {lastMsg
+                      ? lastMsg.message
+                      : "No messages yet"}
                   </div>
                 </div>
               </div>
             );
           })}
         </div>
-
       </aside>
 
-      {/* CHAT AREA */}
+      {/* ================= CHAT AREA ================= */}
       <main className="chat">
         {!activeGroup ? (
           <div className="empty-state">
@@ -179,12 +148,11 @@ const Chat = () => {
           <ChatSpace
             user={user}
             groupId={activeGroup}
-            onAddMembers={() => setShowAddMemberModal(true)}
           />
         )}
       </main>
 
-      {/* CREATE GROUP MODAL */}
+      {/* ================= CREATE GROUP MODAL ================= */}
       {showCreateModal && (
         <div className="modal-overlay">
           <div className="modal">
@@ -201,21 +169,6 @@ const Chat = () => {
               </button>
               <button className="save" onClick={createGroup}>
                 Save
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ADD MEMBER MODAL */}
-      {showAddMemberModal && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <h3>Add Members</h3>
-            <UserSearch onUserSelect={handleUserSelect} />
-            <div className="modal-actions">
-              <button onClick={() => setShowAddMemberModal(false)}>
-                Close
               </button>
             </div>
           </div>

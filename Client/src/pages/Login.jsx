@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "../style/Login.css";
 
 const Login = () => {
@@ -66,6 +66,10 @@ const Login = () => {
             Login
           </button>
         </form>
+        <p className="auth-switch">
+          Create new account{" "}
+          <Link to="/">Login</Link>
+        </p>
       </div>
     </div>
   );
